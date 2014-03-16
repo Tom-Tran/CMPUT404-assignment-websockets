@@ -14,6 +14,12 @@ pip install flask-sockets
 
 pip install ws4py
 
+References
+==========
+
+Web Sockets Example:
+https://github.com/abramhindle/WebSocketsExamples
+
 Contributors / Licensing
 ========================
 
