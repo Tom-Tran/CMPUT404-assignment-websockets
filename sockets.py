@@ -39,21 +39,22 @@ class World:
         entry = self.space.get(entity,dict())
         entry[key] = value
         self.space[entity] = entry
-        self.update_listeners( entity )
+        #self.update_listeners( entity )
+        self.update_listeners( json.dumps({'entity': entity, 'data': self.space[entity]}) )
 
     def set(self, entity, data):
         self.space[entity] = data
-        self.update_listeners( entity )
+        #self.update_listeners( entity )
+        self.update_listeners( json.dumps({'entity': entity, 'data': self.space[entity]}) )
 
-    def update_listeners(self, entity):
+    def update_listeners(self, message):
         '''update the set listeners'''
         for listener in self.listeners:
             #listener(entity, self.get(entity))
-            # TODO TEST Send world for now
-            print "Send the world"
-            listener.put( json.dumps(self.world()) )
+            listener.put( message )
 
     def clear(self):
+        # Unimplemented: Other clients will not know that the world has been cleared
         self.space = dict()
 
     def get(self, entity):
@@ -66,8 +67,8 @@ class Client:
     def __init__(self):
         self.queue = queue.Queue()
     
-    def put(self, v):
-        self.queue.put_nowait(v)
+    def put(self, msg):
+        self.queue.put_nowait(msg)
         
     def get(self):
         return self.queue.get()
@@ -98,7 +99,6 @@ def read_ws(ws,client):
                 break
     except:
         '''Done'''
-        
     return None
 
 @sockets.route('/subscribe')
@@ -121,7 +121,6 @@ def subscribe_socket(ws):
     finally:
         myWorld.listeners.remove(client)
         gevent.kill(g)
-            
     return None
 
 
@@ -157,10 +156,10 @@ def get_entity(entity):
     '''This is the GET version of the entity interface, return a representation of the entity'''
     return flask.jsonify(myWorld.get(entity)), 200
 
-
 @app.route("/clear", methods=['POST','GET'])
 def clear():
     '''Clear the world out!'''
+    # Unimplemented: Other clients will not know that the world has been cleared
     myWorld.clear()
     return Response("<h1>CLEARED</h1>", status=200, mimetype="text/html")
 

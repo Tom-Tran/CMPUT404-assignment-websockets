@@ -176,11 +176,12 @@ function addEntity(entity, data) {
     //world[entity] = data;
     //drawNextFrame(); // (but should we?)
     //XXX: Send a XHTML Request that updates the entity you just modified!
+    // Send the newly drawn entity
 	socket.send( JSON.stringify( {"entity": entity,
 		"data": data} ) );
 }
 
-//Everyone's marker will have a chance to have a different color
+//Everyone's marker will have a chance to be a different color
 var uniqueId = 'X'+Math.floor(Math.random()*10%7);
 
 var counter = 0;
@@ -333,17 +334,62 @@ mouse.mousedraggers.push(function(x,y,clicked,e) {
     addEntityWithoutName({'x':x,'y':y,'colour':myColour});
 });
 
-/*
-function update() {
-    drawFrame();
-}
-*/
 
+// Update the canvas
+function update() {
+	// Update the canvas 30 frames per second
+	drawFrame();
+    drawNextFrame();
+}
+
+
+// Used solely for getting the current world when opening a new socket
+function sendJSONXMLHTTPRequest(url, objects, callback) {
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState==4) {
+            try {
+                if (xhr.status==200) {
+                    //XXX: parse some JSON from the request!
+                    //XXX: Pass the data to the callback!
+                    var jsonData = JSON.parse(xhr.responseText);
+                    if (callback != null)
+                    	callback(jsonData);
+                }
+            } 
+            catch(e) {
+                alert('Error: ' + e.name);
+            }
+        }
+    };
+    //XXX: POST to a URL
+    //XXX: set the mimetype and the accept headers!
+    // Remember to use application/json !
+    if (objects == null) {
+    	xhr.open("GET", url, true);
+    	xhr.send();
+    }
+    else {
+	    xhr.open("POST", url, true);
+	    xhr.setRequestHeader("Content-type","application/json");
+	    xhr.setRequestHeader("Accept","application/json");
+	    xhr.send(JSON.stringify(objects));
+    }
+}
+
+
+// Setup the websocket
 function wsSetup() {
     var url = "ws://"+host+"/subscribe";   
     socket = new WebSocket(url);
     socket.onopen = function() {
         //XXX: TODO What are you going to do here?
+       	// Get the current world using AJAX
+        sendJSONXMLHTTPRequest('/world', null, function(jsonData){
+        	world = jsonData;
+        	debug("Current world: look in console");
+        	console.log(JSON.stringify(world));
+        }); 
     };
     socket.onerror = function(msg) {
         debug("WebSocket Error:" + msg.data);
@@ -352,10 +398,9 @@ function wsSetup() {
         try {
             debug("WebSocket Recv:" + msg.data);
             //XXX: TODO What are you going to do here?
-        	// TODO: TEST Just get the entire world everytime
-        	world = JSON.parse(msg.data);
-            drawFrame();
-            drawNextFrame();
+           	// Add the new entry to our world 
+        	var entry = JSON.parse(msg.data);
+        	world[entry['entity']] = entry['data'];
         } catch (e) {
             alert("socket on message: " + e);
         }
@@ -365,12 +410,8 @@ function wsSetup() {
 wsSetup();
 
 
-
-
-// 30 frames per second
-/*
+// 30 frames per second, update canvas
 setInterval( update, 1000/30.0);
-*/
 
     </script>
 </body>
