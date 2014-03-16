@@ -6,7 +6,7 @@
     <meta content='width=device-width; height=device-height; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;' name='viewport' />
     <meta name="viewport" content="width=device-width" />
     <meta name="license" content="
-        Copyright 2013 Google, Abram Hindle
+        Copyright 2013 Google, Abram Hindle, Tom Tran
         
         Licensed under the Apache License, Version 2.0 (the "License");
         you may not use this file except in compliance with the License.
@@ -22,17 +22,45 @@
     "/>
     <script src="json2.js"></script>
   </head> 
+
+<!-- 
   <body bgcolor="white" height="100%" width="100%"> 
     <div id="debug"></div>
     <canvas id="c" width="100%" height="100%" style="-webkit-tap-highlight-color: transparent;"></canvas> 
-
+-->
+  <body bgcolor="grey" height="100%" width="100%">
+  <div>
+  <h1 style="text-align: center; color: black; font-size: 40px; width: 45%; 
+  float: left; margin-left: 15%;" > Welcome to Tom's Canvas! </h1>
+  <form action="/clear" method="POST" style="margin-top: 25px; width: 25%; 
+  text-align: center; float: right; margin-right: 10%;">
+  	<input type="submit" value="CLEAR" style="font-size: 35px; 
+  	-webkit-border-radius: 15px; 
+	-moz-border-radius: 15px;
+	border-radius: 15px;
+	-webkit-box-shadow: 3px 3px 3px 3px rgba(0,0,0,.4);
+	-moz-box-shadow: 3px 3px 3px 3px rgba(0,0,0,.4);
+	box-shadow: 3px 3px 3px 3px rgba(0,0,0,.4);"/>
+  </form>
+  <br/>
+  </div> 
+    <canvas id="c" style="-webkit-tap-highlight-color: transparent;
+    display: block; margin-right: auto; margin-left: auto;
+    border:5px solid black; background-color: white;"></canvas> 
+<div id="debug"></div>
+    
     <script>
       // Fix me
 var canvas = document.getElementById('c');
 var host = window.location.host;
 var context = canvas.getContext("2d");
+/* 
 var W = canvas.width  = window.innerWidth-6;
 var H = canvas.height = window.innerHeight-50;
+*/
+var W = canvas.width  = 1000;
+var H = canvas.height = 600;
+
 var wscounter = 0;
 var socket;
 
@@ -47,6 +75,7 @@ world = {};
 //XXX: TODO Make this prettier!
 function drawCircle(context,entity) {
     with(context) {
+    	/* 
         beginPath();                
         lineWidth = 3;
         var x = entity["x"];
@@ -55,24 +84,46 @@ function drawCircle(context,entity) {
         fillStyle = entity["colour"];
         strokeStyle = fillStyle;
         arc(x, y, (entity["radius"])?entity["radius"]:50, 0, 2.0 * Math.PI, false);  
-        stroke();                                
+        stroke();        
+        */
+        beginPath();              
+        lineWidth = 3;
+        var x = entity["x"];
+        var y = entity["y"];
+        //moveTo(x,y);
+        fillStyle = entity["colour"];
+        strokeStyle = fillStyle;
+        rectW = 10;
+        rectH = 10;
+        fillRect(x,y,rectW, rectH);
+        stroke();     
     }
 }
 
 function prepEntity(entity) {
+	/*
     if (!entity["colour"]) {
         entity["colour"] = "#FF0000";
     }
     if (!entity["radius"]) {
         entity["radius"] = 50;
     }
+    */
+    if (!entity["colour"]) {
+        entity["colour"] = "#000000";
+    }
     return entity;
 }
 
 function clearFrame() {
     with(context) {
+   	/*
 	moveTo(0,0);
 	fillStyle = "#000";
+	fillRect(0,0,W,H);
+    */
+	moveTo(0,0);
+	fillStyle = "white";
 	fillRect(0,0,W,H);
     }
 
@@ -122,13 +173,23 @@ function getPosition(e) {
 }
 
 function addEntity(entity, data) {
-    world[entity] = data;
-    drawNextFrame(); // (but should we?)
+    //world[entity] = data;
+    //drawNextFrame(); // (but should we?)
     //XXX: Send a XHTML Request that updates the entity you just modified!
+	socket.send( JSON.stringify( {"entity": entity,
+		"data": data} ) );
 }
+
+//Everyone's marker will have a chance to have a different color
+var uniqueId = 'X'+Math.floor(Math.random()*10%7);
+
 var counter = 0;
 function addEntityWithoutName(data) {
+	/*
     var name = "X"+(counter++)%100;
+    addEntity(name,data);
+    */
+    var name = "X"+uniqueId+(counter++)%150;
     addEntity(name,data);
 }
 
@@ -230,6 +291,22 @@ mouse = (function() {
 
 // Add the application specific mouse listeners!
 //XXX: TODO Make these prettier!
+
+// Everyone's marker will have a chance to have a different color on entering/refreshing page
+// uniqueId is defined above... needed for entity name
+var colourMap = {
+		'X0' : 'red',
+		'X1' : 'blue',
+		'X2' : 'yellow',
+		'X3' : 'orange',
+		'X4' : 'grey',
+		'X5' : 'purple',
+		'X6' : 'green'
+};
+
+var myColour = colourMap[uniqueId];
+
+/*
 mouse.mousedowners.push(function(x,y,clicked,e) {
     addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
 });
@@ -242,12 +319,25 @@ mouse.mousedraggers.push(function(x,y,clicked,e) {
     addEntityWithoutName({'x':x,'y':y,'colour':'green',
                           'radius':10});
 });
+*/
 
+mouse.mousedowners.push(function(x,y,clicked,e) {
+    addEntityWithoutName({'x':x,'y':y,'colour':myColour});
+});
 
+mouse.mouseuppers.push(function(x,y,clicked,e) {
+    addEntityWithoutName({'x':x,'y':y,'colour':myColour});
+});
+
+mouse.mousedraggers.push(function(x,y,clicked,e) {
+    addEntityWithoutName({'x':x,'y':y,'colour':myColour});
+});
+
+/*
 function update() {
     drawFrame();
 }
-
+*/
 
 function wsSetup() {
     var url = "ws://"+host+"/subscribe";   
@@ -261,7 +351,11 @@ function wsSetup() {
     socket.onmessage = function(msg) {  
         try {
             debug("WebSocket Recv:" + msg.data);
-            //XXX: TODO What are you going to do here?            
+            //XXX: TODO What are you going to do here?
+        	// TODO: TEST Just get the entire world everytime
+        	world = JSON.parse(msg.data);
+            drawFrame();
+            drawNextFrame();
         } catch (e) {
             alert("socket on message: " + e);
         }
@@ -274,8 +368,9 @@ wsSetup();
 
 
 // 30 frames per second
+/*
 setInterval( update, 1000/30.0);
-
+*/
 
     </script>
 </body>
